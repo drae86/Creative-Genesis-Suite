@@ -1,0 +1,789 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Studio AI - Image & Video Generation Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: generations
+    description: AI generation operations (images & videos)
+  - name: collections
+    description: Collection management
+  - name: dashboard
+    description: Dashboard and analytics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /generations:
+    get:
+      operationId: listGenerations
+      tags: [generations]
+      summary: List all generations
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [image, video]
+        - name: collectionId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of generations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Generation"
+    post:
+      operationId: createGeneration
+      tags: [generations]
+      summary: Create a new AI generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerationInput"
+      responses:
+        "201":
+          description: Created generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+
+  /generations/recent:
+    get:
+      operationId: listRecentGenerations
+      tags: [generations]
+      summary: Get most recent generations
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        "200":
+          description: Recent generations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Generation"
+
+  /generations/{id}:
+    get:
+      operationId: getGeneration
+      tags: [generations]
+      summary: Get a single generation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateGeneration
+      tags: [generations]
+      summary: Update a generation (title, notes, favorite)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerationUpdate"
+      responses:
+        "200":
+          description: Updated generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteGeneration
+      tags: [generations]
+      summary: Delete a generation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /generations/{id}/variations:
+    post:
+      operationId: createVariation
+      tags: [generations]
+      summary: Create a variation of an existing generation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VariationInput"
+      responses:
+        "201":
+          description: Created variation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "404":
+          description: Not found
+
+  /collections:
+    get:
+      operationId: listCollections
+      tags: [collections]
+      summary: List all collections
+      responses:
+        "200":
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Collection"
+    post:
+      operationId: createCollection
+      tags: [collections]
+      summary: Create a new collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionInput"
+      responses:
+        "201":
+          description: Created collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+
+  /collections/{id}:
+    get:
+      operationId: getCollection
+      tags: [collections]
+      summary: Get a collection with its generations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Collection with generations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionWithGenerations"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCollection
+      tags: [collections]
+      summary: Update a collection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionUpdate"
+      responses:
+        "200":
+          description: Updated collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteCollection
+      tags: [collections]
+      summary: Delete a collection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /collections/{id}/items:
+    post:
+      operationId: addToCollection
+      tags: [collections]
+      summary: Add a generation to a collection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionItemInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionItem"
+        "404":
+          description: Not found
+
+  /collections/{id}/items/{generationId}:
+    delete:
+      operationId: removeFromCollection
+      tags: [collections]
+      summary: Remove a generation from a collection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Not found
+
+  /glass-room:
+    get:
+      operationId: listGlassRoom
+      tags: [dashboard]
+      summary: List active Glass Room entries (view-only, 20-day display limit)
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Active Glass Room entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GlassRoomEntry"
+    post:
+      operationId: submitToGlassRoom
+      tags: [dashboard]
+      summary: Submit a generation to the Glass Room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GlassRoomInput"
+      responses:
+        "201":
+          description: Created Glass Room entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlassRoomEntry"
+        "404":
+          description: Generation not found
+
+  /glass-room/{id}:
+    delete:
+      operationId: removeFromGlassRoom
+      tags: [dashboard]
+      summary: Remove an entry from the Glass Room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Not found
+
+  /public-gallery:
+    get:
+      operationId: getPublicGallery
+      tags: [dashboard]
+      summary: Get all community creations for the public gallery
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Public gallery generations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Generation"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/activity:
+    get:
+      operationId: getDashboardActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Generation:
+      type: object
+      required:
+        - id
+        - prompt
+        - type
+        - status
+        - imageUrl
+        - aspectRatio
+        - model
+        - style
+        - settings
+        - notes
+        - isFavorite
+        - parentId
+        - collectionIds
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        title:
+          type: ["string", "null"]
+        prompt:
+          type: string
+        enhancedPrompt:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [image, video]
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        imageUrl:
+          type: ["string", "null"]
+        thumbnailUrl:
+          type: ["string", "null"]
+        aspectRatio:
+          type: string
+        model:
+          type: string
+        style:
+          type: ["string", "null"]
+        settings:
+          type: string
+          description: JSON stringified generation settings
+        notes:
+          type: ["string", "null"]
+        badgeName:
+          type: ["string", "null"]
+        badgeLink:
+          type: ["string", "null"]
+        isFavorite:
+          type: boolean
+        parentId:
+          type: ["integer", "null"]
+        collectionIds:
+          type: array
+          items:
+            type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GenerationInput:
+      type: object
+      required:
+        - prompt
+        - type
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [image, video]
+        aspectRatio:
+          type: string
+          default: "1:1"
+        model:
+          type: string
+          default: "flux"
+        style:
+          type: ["string", "null"]
+        negativePrompt:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        enhancePrompt:
+          type: boolean
+          default: false
+        duration:
+          type: ["string", "null"]
+          description: "Video duration hint: '5s' or '10s'"
+
+    GenerationUpdate:
+      type: object
+      properties:
+        title:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        badgeName:
+          type: ["string", "null"]
+        badgeLink:
+          type: ["string", "null"]
+        isFavorite:
+          type: boolean
+        prompt:
+          type: string
+
+    VariationInput:
+      type: object
+      properties:
+        prompt:
+          type: ["string", "null"]
+        style:
+          type: ["string", "null"]
+        aspectRatio:
+          type: ["string", "null"]
+
+    Collection:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - coverImageUrl
+        - itemCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
+        itemCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CollectionWithGenerations:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - coverImageUrl
+        - itemCount
+        - generations
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
+        itemCount:
+          type: integer
+        generations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Generation"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CollectionInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+
+    CollectionUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+
+    CollectionItem:
+      type: object
+      required:
+        - collectionId
+        - generationId
+        - addedAt
+      properties:
+        collectionId:
+          type: integer
+        generationId:
+          type: integer
+        addedAt:
+          type: string
+          format: date-time
+
+    CollectionItemInput:
+      type: object
+      required:
+        - generationId
+      properties:
+        generationId:
+          type: integer
+
+    GlassRoomEntry:
+      type: object
+      required:
+        - id
+        - generationId
+        - displayUntil
+        - createdAt
+        - generation
+      properties:
+        id:
+          type: integer
+        generationId:
+          type: integer
+        creatorName:
+          type: ["string", "null"]
+        creatorContact:
+          type: ["string", "null"]
+        contactPublic:
+          type: boolean
+        displayUntil:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        generation:
+          $ref: "#/components/schemas/Generation"
+
+    GlassRoomInput:
+      type: object
+      required:
+        - generationId
+      properties:
+        generationId:
+          type: integer
+        creatorName:
+          type: ["string", "null"]
+        creatorContact:
+          type: ["string", "null"]
+        contactPublic:
+          type: boolean
+          default: false
+
+    DashboardStats:
+      type: object
+      required:
+        - totalImages
+        - totalVideos
+        - totalCollections
+        - totalFavorites
+        - generationsToday
+        - generationsThisWeek
+      properties:
+        totalImages:
+          type: integer
+        totalVideos:
+          type: integer
+        totalCollections:
+          type: integer
+        totalFavorites:
+          type: integer
+        generationsToday:
+          type: integer
+        generationsThisWeek:
+          type: integer
+
+    ActivityItem:
+      type: object
+      required:
+        - id
+        - type
+        - description
+        - generation
+        - createdAt
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [generated, favorited, added_to_collection, variation_created]
+        description:
+          type: string
+        generation:
+          $ref: "#/components/schemas/Generation"
+        createdAt:
+          type: string
+          format: date-time
